@@ -1,0 +1,133 @@
+% 伪代码1 社会网络构建
+\begin{algorithm}
+\caption{ Community Social Network Construction}
+\begin{algorithmic}[1]
+\State \textbf{Input:}
+\State $A$: Set of all agents
+\State $d_{\text{thresh}}$: Distance threshold for defining community range
+\State $\Delta_{\text{thresh}}$: Social proximity threshold for friendship
+\State $\text{Prob}_{\text{thresh}}$: Probability threshold for forming neighbor relationships
+\State $\textbf{Output:}$ Social network $S$ for each agent
+
+\For{each agent $i \in A$}
+    \State $S_{\text{friend}_i} := \emptyset$  
+    \State $S_{\text{neighbor}_i} := \emptyset$  
+    \State $S_{\text{stranger}_i} := \emptyset$  
+    \State Calculate geographic distance $d_{ij}$ to all other agents $j \in A$
+    \If{$d_{ij} \leq d_{\text{thresh}}$}
+        \State Form edges with $\lambda$ neighbors to create community
+        \For{each neighbor $j$}
+            \State Calculate social proximity $\Delta_{ij}$ (Equation 3)
+            \If{$\Delta_{ij} \leq \Delta_{\text{thresh}}$}
+                \State Add $j$ to $S_{\text{friend}_i}$
+            \Else
+                \State Remove edge between $i$ and $j$
+                \State Add $j$ to $S_{\text{stranger}_i}$
+            \EndIf
+        \EndFor
+    \Else
+        \State Add $j$ to $S_{\text{stranger}_i}$
+    \EndIf
+    \State Collect $S_{\text{friend}_i}$ as set of friends
+    \State Collect $S_{\text{stranger}_i}$ not as friends
+    \State Agent $i$ makes edges with strangers randomly
+    \For{each stranger $j$ in $S_{\text{stranger}_i}$}
+        \If{$\text{Prob}_{\text{link}} < \text{Prob}_{\text{thresh}}$}
+            \State $j$ becomes a neighbor of $i$
+            \State Add $j$ to $S_{\text{neighbor}_i}$
+        \Else
+            \State $j$ remains a stranger
+        \EndIf
+    \EndFor
+    \State Compose the social network of Agent $i$
+\EndFor
+
+\State \textbf{return} $S$
+\end{algorithmic}
+\end{algorithm}
+
+%伪代码2 信息传播和态度、主观规范的更新
+\begin{algorithm}
+\caption{intention update rules}
+\begin{algorithmic}[1]
+\State \textbf{Input:}
+\State $A$: Set of all agents
+\State $S_{\text{friend}}, S_{\text{neighbor}}$: Social network subsets containing friends and neighbors for each agent
+\State $\text{AT}_{i0}$: Initial Attitude of each agent
+\State $\text{IN}_{i0}$: Initial Intention of each agent
+\State $\text{SN}$: Subjective norms of each agent
+\State $\text{GB}$: Green Behavior characteristic values of each agent
+\State $\text{GB}_{\text{eligb}}$: Standard of demonstration behavior for green energy use
+\State $\text{Press}_{\text{thresh}}$: Threshold for group pressure leading to norm activation
+\State $\text{CSN}_{\text{thresh}}$: Community social norm influence threshold
+
+\State \textbf{Output:}
+\State Updated Attitude ($\text{AT}$), Intention ($\text{IN}_{it}$), and Subjective Norms ($\text{SN}$) for each agent
+
+\Procedure{Update Agent intention States}{}
+\For{each agent $i \in A$}
+    \State Calculate peer influence, represented by adoption ratio:
+    \State $\text{Adoption\_Ratio}_i = \frac{\sum_{j \in S_{\text{friend}}[i]} c_{ij} \times d_{ij}}{\sum_{j in S_{\text{friend}}[i]} c_{ij}}$ \Comment{Eq. (4)}
+    \If {$\text{Adoption\_Ratio}_i \geq 0.5$}
+        \State $\text{IN}_{i0} \gets 1$ \Comment{Agent adopts if half or more friends have adopted}
+    \EndIf
+
+    \For {each agent $k \in (S_{\text{friend}}[i] \cup S_{\text{neighbor}}[i])$}
+        \State Calculate Attitude Overlap and Uncertainty:
+        \State $\text{Overlap}_{ik}, \Delta \text{AT}_{ik}$ \Comment{Eqs. (5) to (7)}
+        \If {$\text{Overlap}_{ik} > 0$}
+            \State Update $\text{AT}_i$ using calculated $\Delta \text{AT}_{ik}$
+        \EndIf
+    \EndFor
+    \State Update $\text{IN}_{it}$ based on new $\text{AT}_{it}$ \Comment{Sect. 2.2.1, Eq. (1)}
+
+    \State $\text{Press}_i \gets |\text{GB}_i - \text{GB}_{\text{eligb}}|$ \Comment{Calculate group pressure; Eq. (9)}
+    \If{$\text{Press}_i \geq \text{CSN}_{\text{thresh}}$}
+        \If{$\text{Press}_i \geq  \text{Press}_{\text{low}}$}
+            \State $S_i \gets$ Calculate social effect based on peer influence \Comment{Eq. (10)}
+            \State $\text{SN}_i \gets S_i \times \text{SN}_i$ \Comment{Update SN; Eq. (11)}
+        \ElsIf{$\text{Press}_i \leq \text{Press}_{\text{high}}$}
+            \State $\text{SN}_i \gets (1 - \frac{\text{Press}_i}{2}) \times \text{SN}_i$ \Comment{Reduce SN; Eq. (12)}
+        \EndIf
+        \State Update $\text{IN}_i$ based on $\text{SN}_i$ using Eq. (13)
+    \EndIf
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+% 伪代码3 行为更新规则（附录D）
+\begin{algorithm}
+\caption{Update Green Behavior}
+\begin{algorithmic}[1]
+\State \textbf{Input:}
+\State $A$: Set of all agents
+\State $GB$: Green Behavior characteristic values
+\State $SAT_{\text{min}}$: Minimum satisfaction threshold
+\State $U_{\text{max}}$: Maximum uncertainty tolerance
+\State \textbf{Output:}
+\State Updated Green Behavior ($GB$) for each agent
+
+\Procedure{UpdateGreenBehavior}{}
+\For{each agent $i \in A$}
+    \State Calculate $SAT_i$ and $BU_i$ using Equations (14) to (17)
+    \If{$SAT_i < SAT_{\text{min}}$ or $BU_i > U_{\text{max}}$}
+        \Comment{Assess the need for behavior change}
+        \If{$BU_i > U_{\text{max}}$}
+            \If{$SAT_i < SAT_{\text{min}}$}
+                \State $GB_i \gets \max(IN_i, GB_i)$ \Comment{Deliberation strategy}
+            \Else
+                \State $GB_i \gets \max(SAT(GB_{\text{neighbors}}, GB_i))$ \Comment{Social comparison strategy}
+            \EndIf
+        \Else
+            \If{$SAT_i < SAT_{\text{min}}$}
+                \State $GB_i \gets GB_i$ \Comment{Repetition strategy}
+            \Else
+                \State $GB_i \gets GB_{\text{eligible}}$ \Comment{Imitation strategy}
+            \EndIf
+        \EndIf
+    \EndIf
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
